@@ -273,7 +273,7 @@ namespace SynRaceRebalancer
             //For each race we have in our list
             foreach (IRaceGetter raceToPatch in RacesToPatch)
             {
-                Logger.Log($"{raceToPatch.EditorID} found");
+                //Logger.Log($"{raceToPatch.EditorID} found");
 
                 //Base Attributes
                 float baseHealth = raceToPatch.Starting[BasicStat.Health];
@@ -293,12 +293,6 @@ namespace SynRaceRebalancer
                 float baseUnarmedDamage = raceToPatch.UnarmedDamage;
                 float baseUnarmedReach = raceToPatch.UnarmedReach;
 
-                //Other
-                Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
-
-                var IPatchedStartingAttributes = patchedRace.Starting;
-                var IPatchedRegenAttributes = patchedRace.Regen;
-
                 float GlobalHPMod = SettingsGlobal.GlobalHPMultiplier;
                 float MinimumHPAnchor = SettingsGlobal.MinimumHPAnchor;
                 float GlobalHPShift = SettingsGlobal.GlobalHPShift;
@@ -316,6 +310,10 @@ namespace SynRaceRebalancer
                     // || raceToPatch.EditorID != null && aliases.Any(x => raceToPatch.EditorID.Contains(x))
                     if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true)
                     {
+                        Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
+                        var IPatchedStartingAttributes = patchedRace.Starting;
+                        var IPatchedRegenAttributes = patchedRace.Regen;
+
                         var SettingsMod = SettingsPlayable.Global;
                         
                         var condVamp = (raceToPatch.Keywords?.Contains(Skyrim.Keyword.Vampire) == true && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
@@ -414,9 +412,11 @@ namespace SynRaceRebalancer
             patchedRace.DecelerationRate = newDeceleration;
 
             patchedRace.UnarmedDamage = newUnarmedDamage;
-            patchedRace.UnarmedDamage = newUnarmedReach;
+            patchedRace.UnarmedReach = newUnarmedReach;
 
-            if (newName != null)
+            //Logger.Log($"{newName}");
+
+            if (!string.IsNullOrEmpty(newName))
                 patchedRace.Name = newName;
 
             Logger.Log($"Patched {patchedRace.EditorID}");
