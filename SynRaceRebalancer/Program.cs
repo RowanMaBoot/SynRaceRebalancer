@@ -313,18 +313,45 @@ namespace SynRaceRebalancer
 
                     //If the raceToPatch contains the selectedRace editor ID in their own ID, we'll use it as a match. Otherwise if the alises make any matches, we'll use them.
                     //TODO: Keyword fail-safe. Make Editor ID an exact match, aliases a (keyword + contains string) match.
-                    if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true || raceToPatch.EditorID != null && aliases.Any(x => raceToPatch.EditorID.Contains(x)))
+                    // || raceToPatch.EditorID != null && aliases.Any(x => raceToPatch.EditorID.Contains(x))
+                    if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true)
                     {
+                        var SettingsMod = SettingsPlayable.Global;
+                        
                         var condVamp = (raceToPatch.Keywords?.Contains(Skyrim.Keyword.Vampire) == true && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
                         var condChild = (raceToPatch.Flags.HasFlag((Race.Flag)4) && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
 
+                        float modHP = condVamp ? SettingsMod.VampirePercentHealth :
+                                              condChild ? SettingsMod.ChildPercentHealth :
+                                              1.0f;
+                        float modMG = condVamp ? SettingsMod.VampirePercentMagicka :
+                                      condChild ? SettingsMod.ChildPercentMagicka :
+                                      1.0f;
+                        float modST = condVamp ? SettingsMod.VampirePercentStamina :
+                                      condChild ? SettingsMod.ChildPercentStamina :
+                                      1.0f;
+
+                        float modCarryWeight = condVamp ? SettingsMod.VampirePercentCarryWeight :
+                                               condChild ? SettingsMod.ChildPercentCarryWeight :
+                                               1.0f;
+
+                        float modHPRegen = condVamp ? SettingsMod.VampirePercentHealthRegen :
+                                           condChild ? SettingsMod.ChildPercentHealthRegen :
+                                           1.0f;
+                        float modMGRegen = condVamp ? SettingsMod.VampirePercentMagickaRegen :
+                                           condChild ? SettingsMod.ChildPercentMagickaRegen :
+                                           1.0f;
+                        float modSTRegen = condVamp ? SettingsMod.VampirePercentStaminaRegen :
+                                           condChild ? SettingsMod.ChildPercentStaminaRegen :
+                                           1.0f;
+
                         var condStatChange = (SettingsPlayable.General.PlayableRaceStatChanges);
                         var condNameChange = (SettingsPlayable.General.PlayableRaceNameChanges);
-                        var condSkillhange = (SettingsPlayable.General.PlayableRaceSkillChanges);
+                        var condSkillChange = (SettingsPlayable.General.PlayableRaceSkillChanges);
 
-                        int targetHealth = (int)(condStatChange ? selectedRace.attributeHealth : baseHealth);
-                        int targetMagicka = (int)(condStatChange ? selectedRace.attributeMagicka : baseMagicka);
-                        int targetStamina = (int)(condStatChange ? selectedRace.attributeStamina : baseStamina);
+                        float targetHealth = (condStatChange ? selectedRace.attributeHealth : baseHealth);
+                        float targetMagicka = (condStatChange ? selectedRace.attributeMagicka : baseMagicka);
+                        float targetStamina = (condStatChange ? selectedRace.attributeStamina : baseStamina);
 
                         float targetCarryWeight = (condStatChange ? selectedRace.baseCarryWeight : baseAcceleration);
                         float targetMass = (condStatChange ? selectedRace.baseMass : baseMass);
@@ -341,17 +368,64 @@ namespace SynRaceRebalancer
 
                         var newName = (condNameChange ? selectedRace.newName : null);
 
-                        PatchAttributes(newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
-
+                        Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}");
+                        
+                        PatchAttributes(IPatchedStartingAttributes, IPatchedRegenAttributes, patchedRace, newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
+                        
+                        if (condSkillChange)
+                            PatchSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
+                        
                         break;
                     }
                 }
             }
         }
 
-        private static void PatchAttributes(string? newName, int targetHealth, int targetMagicka, int targetStamina, float targetCarryWeight, float targetMass, float targetAcceleration, float targetDeceleration, float targetHealthRegen, float targetMagickaRegen, float targetStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
+        private static void PatchAttributes(IDictionary<BasicStat, float> IPatchedStartingAttributes, IDictionary<BasicStat, float> IPatchedRegenAttributes, Race patchedRace, string? newName, float newHealth, float newMagicka, float newStamina, float newCarryWeight, float newMass, float newAcceleration, float newDeceleration, float newHealthRegen, float newMagickaRegen, float newStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
         {
-            
+            if (SettingsGlobal.EnableModule)
+                newHealth = (int)((newHealth * SettingsGlobal.GlobalHPMultiplier) + SettingsGlobal.GlobalHPShift);
+
+            if (!SettingsGlobal.EnableModule && newHealth <= 1)
+                newHealth = 1;
+            else if (newHealth <= SettingsGlobal.MinimumHPAnchor)
+                newHealth = SettingsGlobal.MinimumHPAnchor;
+
+            IPatchedStartingAttributes.Remove(BasicStat.Health);
+            IPatchedStartingAttributes.Remove(BasicStat.Stamina);
+            IPatchedStartingAttributes.Remove(BasicStat.Magicka);
+
+            IPatchedStartingAttributes.Add(BasicStat.Health, newHealth);
+            IPatchedStartingAttributes.Add(BasicStat.Magicka, newMagicka);
+            IPatchedStartingAttributes.Add(BasicStat.Stamina, newStamina);
+
+            IPatchedRegenAttributes.Remove(BasicStat.Health);
+            IPatchedRegenAttributes.Remove(BasicStat.Stamina);
+            IPatchedRegenAttributes.Remove(BasicStat.Magicka);
+
+            IPatchedRegenAttributes.Add(BasicStat.Health, newHealthRegen);
+            IPatchedRegenAttributes.Add(BasicStat.Magicka, newMagickaRegen);
+            IPatchedRegenAttributes.Add(BasicStat.Stamina, newStaminaRegen);
+
+            patchedRace.BaseCarryWeight = newCarryWeight;
+            patchedRace.BaseMass = newMass;
+
+            patchedRace.AccelerationRate = newAcceleration;
+            patchedRace.DecelerationRate = newDeceleration;
+
+            patchedRace.UnarmedDamage = newUnarmedDamage;
+            patchedRace.UnarmedDamage = newUnarmedReach;
+
+            if (newName != null)
+                patchedRace.Name = newName;
+
+            Logger.Log($"Patched {patchedRace.EditorID}");
         }
+
+        private static void PatchSkills(Race patchedRace, SkillList.Skills skill0, sbyte skill0Boost, SkillList.Skills skill1, sbyte skill1Boost, SkillList.Skills skill2, sbyte skill2Boost, SkillList.Skills skill3, sbyte skill3Boost, SkillList.Skills skill4, sbyte skill4Boost, SkillList.Skills skill5, sbyte skill5Boost, SkillList.Skills skill6, sbyte skill6Boost)
+        {
+
+        }
+
     }
 }

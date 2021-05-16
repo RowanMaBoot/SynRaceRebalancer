@@ -16,7 +16,7 @@ namespace SynRaceRebalancer
         [SynthesisOrder]
         public General General = new();
         [SynthesisOrder]
-        public GlobalRaceSettings GlobalRaceSettings = new();
+        public GlobalRaceSettings Global = new();
 
         //Races
         [SynthesisOrder]
