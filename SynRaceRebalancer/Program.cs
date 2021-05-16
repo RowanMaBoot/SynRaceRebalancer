@@ -271,7 +271,7 @@ namespace SynRaceRebalancer
             Logger.Log($"{RacesToPatch.Count} races to patch");
 
             //For each race we have in our list
-            foreach (IRaceGetter raceToPatch in RacesToPatch)
+            foreach (IRaceGetter raceToPatch in RacesToPatch.ToList())
             {
                 //Logger.Log($"{raceToPatch.EditorID} found");
 
@@ -301,14 +301,17 @@ namespace SynRaceRebalancer
                 foreach (RaceObject selectedRace in RacesToModify.PlayableRaceList)
                 {
                     //Check to see if Aliases is null. If not, we can use it. Otherwise we'll just use a dummy string.
-                    string aliases = selectedRace.aliases == null ? aliases = "NOASSIGNEDASLIASES" : aliases = selectedRace.aliases;
-
-                    List<string> aliasesList = aliases.Split(',').ToList();
+                    string aliases = string.IsNullOrEmpty(selectedRace.aliases) ? aliases = "NOASSIGNEDASLIASES" : aliases = selectedRace.aliases;
 
                     //If the raceToPatch contains the selectedRace editor ID in their own ID, we'll use it as a match. Otherwise if the alises make any matches, we'll use them.
                     //TODO: Keyword fail-safe. Make Editor ID an exact match, aliases a (keyword + contains string) match.
-                    // || raceToPatch.EditorID != null && aliases.Any(x => raceToPatch.EditorID.Contains(x))
-                    if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true)
+                    //
+                    List<string> aliasesList = aliases.Split(',').ToList();
+
+                    var CondAliases = raceToPatch.EditorID != null && !aliasesList.All(x => string.IsNullOrWhiteSpace(x)) && aliasesList.Any(x => raceToPatch.EditorID.Contains(x));
+
+                    
+                    if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true || CondAliases)
                     {
                         Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
                         var IPatchedStartingAttributes = patchedRace.Starting;
@@ -354,17 +357,50 @@ namespace SynRaceRebalancer
 
                         var newName = (condNameChange ? selectedRace.newName : null);
 
-                        Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}");
-                        
                         PatchAttributes(IPatchedStartingAttributes, IPatchedRegenAttributes, patchedRace, newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
                         
                         if (condSkillChange)
                             PatchSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
-                        
+
+                        //Remove the caught race from the list of races to be patched - we won't want to patch it further.
+                        Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}. Left: {RacesToPatch.Count - 1}");
+                        RacesToPatch.RemoveAll(raceToPatch => raceToPatch.EditorID == patchedRace.EditorID);
+
                         break;
                     }
                 }
             }
+
+            Logger.Log($"{RacesToPatch.Count} races to patch");
+            foreach (IRaceGetter raceToPatch in RacesToPatch.ToList())
+            {
+                float baseHealth = raceToPatch.Starting[BasicStat.Health];
+
+                //newHealth is the baseHealth * by the multiplier, plus (or minus) the awarded shift. If the value falls below the Minimum HP Anchor (true) use the Minimum Anchor as the health awarded. Otherwise, use whatever we've calculated.
+                float newHealth = ((baseHealth * SettingsGlobal.GlobalHPMultiplier) + SettingsGlobal.GlobalHPShift) <= SettingsGlobal.MinimumHPAnchor ? SettingsGlobal.MinimumHPAnchor : (baseHealth * SettingsGlobal.GlobalHPMultiplier) + SettingsGlobal.GlobalHPShift;
+
+                if (newHealth != baseHealth)
+                {
+                    Logger.Log($"{raceToPatch.EditorID} health being adjusted to: {newHealth}");
+
+                    Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
+                    var IPatchedStartingAttributes = patchedRace.Starting;
+
+                    IPatchedStartingAttributes.Remove(BasicStat.Health);
+                    IPatchedStartingAttributes.Add(BasicStat.Health, (int)newHealth);
+
+                    RacesToPatch.RemoveAll(raceToPatch => raceToPatch.EditorID == patchedRace.EditorID);
+                }
+            }
+
+            Logger.Log($"{RacesToPatch.Count} races unpatched (old values matched new values for all records)");
+            string LeftOvers = "Races Untouched: ";
+            foreach (IRaceGetter raceToPatch in RacesToPatch)
+            {
+                LeftOvers = (string)(LeftOvers + raceToPatch.EditorID + " ");
+            }
+
+            Logger.Log($"{LeftOvers}");
         }
 
         private static void PatchAttributes(IDictionary<BasicStat, float> IPatchedStartingAttributes, IDictionary<BasicStat, float> IPatchedRegenAttributes, Race patchedRace, string? newName, float newHealth, float newMagicka, float newStamina, float newCarryWeight, float newMass, float newAcceleration, float newDeceleration, float newHealthRegen, float newMagickaRegen, float newStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
