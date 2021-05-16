@@ -64,10 +64,10 @@ namespace SynRaceRebalancer
         public bool PlayableRaceNameChanges = true;
         [SynthesisOrder]
         [SynthesisSettingName("Enable or Disable Stat Changes")]
-        public bool HumanoidRaceStatChanges = true;
+        public bool PlayableRaceStatChanges = true;
         [SynthesisOrder]
         [SynthesisSettingName("Enable or Disable Skill Changes")]
-        public bool HumanoidRaceSkillChanges = true;
+        public bool PlayableRaceSkillChanges = true;
     }
 
     public class GlobalRaceSettings

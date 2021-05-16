@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using SynRaceRebalancer.Settings;
 using SynRaceRebalancer.Utils;
 using SynRaceRebalancer.Builders;
+using Mutagen.Bethesda.FormKeys.SkyrimSE;
 
 namespace SynRaceRebalancer
 {
@@ -269,10 +270,88 @@ namespace SynRaceRebalancer
 
             Logger.Log($"{RacesToPatch.Count} races to patch");
 
-            foreach (IRaceGetter race in RacesToPatch)
+            //For each race we have in our list
+            foreach (IRaceGetter raceToPatch in RacesToPatch)
             {
-                Logger.Log($"{race.EditorID} found");
+                Logger.Log($"{raceToPatch.EditorID} found");
+
+                //Base Attributes
+                float baseHealth = raceToPatch.Starting[BasicStat.Health];
+                float baseMagicka = raceToPatch.Starting[BasicStat.Magicka];
+                float baseStamina = raceToPatch.Starting[BasicStat.Stamina];
+
+                float baseCarryWeight = raceToPatch.BaseCarryWeight;
+                float baseMass = raceToPatch.BaseMass;
+
+                float baseAcceleration = raceToPatch.AccelerationRate;
+                float baseDeceleration = raceToPatch.DecelerationRate;
+
+                float baseHealthRegen = raceToPatch.Regen[BasicStat.Health];
+                float baseMagickaRegen = raceToPatch.Regen[BasicStat.Magicka];
+                float baseStaminaRegen = raceToPatch.Regen[BasicStat.Stamina];
+
+                float baseUnarmedDamage = raceToPatch.UnarmedDamage;
+                float baseUnarmedReach = raceToPatch.UnarmedReach;
+
+                //Other
+                Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
+
+                var IPatchedStartingAttributes = patchedRace.Starting;
+                var IPatchedRegenAttributes = patchedRace.Regen;
+
+                float GlobalHPMod = SettingsGlobal.GlobalHPMultiplier;
+                float MinimumHPAnchor = SettingsGlobal.MinimumHPAnchor;
+                float GlobalHPShift = SettingsGlobal.GlobalHPShift;
+
+                //Check each target
+                foreach (RaceObject selectedRace in RacesToModify.PlayableRaceList)
+                {
+                    //Check to see if Aliases is null. If not, we can use it. Otherwise we'll just use a dummy string.
+                    string aliases = selectedRace.aliases == null ? aliases = "NOASSIGNEDASLIASES" : aliases = selectedRace.aliases;
+
+                    List<string> aliasesList = aliases.Split(',').ToList();
+
+                    //If the raceToPatch contains the selectedRace editor ID in their own ID, we'll use it as a match. Otherwise if the alises make any matches, we'll use them.
+                    //TODO: Keyword fail-safe. Make Editor ID an exact match, aliases a (keyword + contains string) match.
+                    if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true || raceToPatch.EditorID != null && aliases.Any(x => raceToPatch.EditorID.Contains(x)))
+                    {
+                        var condVamp = (raceToPatch.Keywords?.Contains(Skyrim.Keyword.Vampire) == true && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
+                        var condChild = (raceToPatch.Flags.HasFlag((Race.Flag)4) && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
+
+                        var condStatChange = (SettingsPlayable.General.PlayableRaceStatChanges);
+                        var condNameChange = (SettingsPlayable.General.PlayableRaceNameChanges);
+                        var condSkillhange = (SettingsPlayable.General.PlayableRaceSkillChanges);
+
+                        int targetHealth = (int)(condStatChange ? selectedRace.attributeHealth : baseHealth);
+                        int targetMagicka = (int)(condStatChange ? selectedRace.attributeMagicka : baseMagicka);
+                        int targetStamina = (int)(condStatChange ? selectedRace.attributeStamina : baseStamina);
+
+                        float targetCarryWeight = (condStatChange ? selectedRace.baseCarryWeight : baseAcceleration);
+                        float targetMass = (condStatChange ? selectedRace.baseMass : baseMass);
+
+                        float targetAcceleration = (condStatChange ? selectedRace.accelerationRate : baseCarryWeight);
+                        float targetDeceleration = (condStatChange ? selectedRace.decelerationRate : baseDeceleration);
+
+                        float targetHealthRegen = (condStatChange ? selectedRace.attributeHealthRegen : baseHealthRegen);
+                        float targetMagickaRegen = (condStatChange ? selectedRace.attributeMagickaRegen : baseMagickaRegen);
+                        float targetStaminaRegen = (condStatChange ? selectedRace.attributeStaminaRegen : baseStaminaRegen);
+
+                        var newUnarmedDamage = (condStatChange ? selectedRace.unarmedDamage : baseUnarmedDamage);
+                        var newUnarmedReach = (condStatChange ? selectedRace.unarmedReach : baseUnarmedDamage);
+
+                        var newName = (condNameChange ? selectedRace.newName : null);
+
+                        PatchAttributes(newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
+
+                        break;
+                    }
+                }
             }
+        }
+
+        private static void PatchAttributes(string? newName, int targetHealth, int targetMagicka, int targetStamina, float targetCarryWeight, float targetMass, float targetAcceleration, float targetDeceleration, float targetHealthRegen, float targetMagickaRegen, float targetStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
+        {
+            
         }
     }
 }
