@@ -319,50 +319,38 @@ namespace SynRaceRebalancer
                         var condVamp = (raceToPatch.Keywords?.Contains(Skyrim.Keyword.Vampire) == true && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
                         var condChild = (raceToPatch.Flags.HasFlag((Race.Flag)4) && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
 
-                        float modHP = condVamp ? SettingsMod.VampirePercentHealth :
-                                              condChild ? SettingsMod.ChildPercentHealth :
-                                              1.0f;
-                        float modMG = condVamp ? SettingsMod.VampirePercentMagicka :
-                                      condChild ? SettingsMod.ChildPercentMagicka :
-                                      1.0f;
-                        float modST = condVamp ? SettingsMod.VampirePercentStamina :
-                                      condChild ? SettingsMod.ChildPercentStamina :
-                                      1.0f;
+                        float modHP = condVamp ? SettingsMod.VampirePercentHealth : condChild ? SettingsMod.ChildPercentHealth : 1.0f;
+                        float modMG = condVamp ? SettingsMod.VampirePercentMagicka : condChild ? SettingsMod.ChildPercentMagicka : 1.0f;
+                        float modST = condVamp ? SettingsMod.VampirePercentStamina : condChild ? SettingsMod.ChildPercentStamina : 1.0f;
 
-                        float modCarryWeight = condVamp ? SettingsMod.VampirePercentCarryWeight :
-                                               condChild ? SettingsMod.ChildPercentCarryWeight :
-                                               1.0f;
+                        float modCarryWeight = condVamp ? SettingsMod.VampirePercentCarryWeight : condChild ? SettingsMod.ChildPercentCarryWeight : 1.0f;
 
-                        float modHPRegen = condVamp ? SettingsMod.VampirePercentHealthRegen :
-                                           condChild ? SettingsMod.ChildPercentHealthRegen :
-                                           1.0f;
-                        float modMGRegen = condVamp ? SettingsMod.VampirePercentMagickaRegen :
-                                           condChild ? SettingsMod.ChildPercentMagickaRegen :
-                                           1.0f;
-                        float modSTRegen = condVamp ? SettingsMod.VampirePercentStaminaRegen :
-                                           condChild ? SettingsMod.ChildPercentStaminaRegen :
-                                           1.0f;
+                        float modHPRegen = condVamp ? SettingsMod.VampirePercentHealthRegen : condChild ? SettingsMod.ChildPercentHealthRegen : 1.0f;
+                        float modMGRegen = condVamp ? SettingsMod.VampirePercentMagickaRegen : condChild ? SettingsMod.ChildPercentMagickaRegen : 1.0f;
+                        float modSTRegen = condVamp ? SettingsMod.VampirePercentStaminaRegen : condChild ? SettingsMod.ChildPercentStaminaRegen : 1.0f;
+
+                        float modChildReach = condChild ? 0.66f : 1.0f; //TODO - Static for now.
 
                         var condStatChange = (SettingsPlayable.General.PlayableRaceStatChanges);
                         var condNameChange = (SettingsPlayable.General.PlayableRaceNameChanges);
                         var condSkillChange = (SettingsPlayable.General.PlayableRaceSkillChanges);
 
-                        float targetHealth = (condStatChange ? selectedRace.attributeHealth : baseHealth);
-                        float targetMagicka = (condStatChange ? selectedRace.attributeMagicka : baseMagicka);
-                        float targetStamina = (condStatChange ? selectedRace.attributeStamina : baseStamina);
+                        float targetHealth = (condStatChange ? selectedRace.attributeHealth : baseHealth) * modHP;
+                        float targetMagicka = (condStatChange ? selectedRace.attributeMagicka : baseMagicka) * modMG;
+                        float targetStamina = (condStatChange ? selectedRace.attributeStamina : baseStamina) * modST;
 
-                        float targetCarryWeight = (condStatChange ? selectedRace.baseCarryWeight : baseAcceleration);
+                        float targetCarryWeight = (condStatChange ? selectedRace.baseCarryWeight : baseCarryWeight) * modCarryWeight;
                         float targetMass = (condStatChange ? selectedRace.baseMass : baseMass);
 
-                        float targetAcceleration = (condStatChange ? selectedRace.accelerationRate : baseCarryWeight);
+                        float targetAcceleration = (condStatChange ? selectedRace.accelerationRate : baseAcceleration);
                         float targetDeceleration = (condStatChange ? selectedRace.decelerationRate : baseDeceleration);
 
-                        float targetHealthRegen = (condStatChange ? selectedRace.attributeHealthRegen : baseHealthRegen);
-                        float targetMagickaRegen = (condStatChange ? selectedRace.attributeMagickaRegen : baseMagickaRegen);
-                        float targetStaminaRegen = (condStatChange ? selectedRace.attributeStaminaRegen : baseStaminaRegen);
+                        float targetHealthRegen = (condStatChange ? selectedRace.attributeHealthRegen : baseHealthRegen) * modHPRegen;
+                        float targetMagickaRegen = (condStatChange ? selectedRace.attributeMagickaRegen : baseMagickaRegen) * modMGRegen;
+                        float targetStaminaRegen = (condStatChange ? selectedRace.attributeStaminaRegen : baseStaminaRegen) * modSTRegen;
 
                         var newUnarmedDamage = (condStatChange ? selectedRace.unarmedDamage : baseUnarmedDamage);
-                        var newUnarmedReach = (condStatChange ? selectedRace.unarmedReach : baseUnarmedDamage);
+                        var newUnarmedReach = (condStatChange ? selectedRace.unarmedReach : baseUnarmedDamage) * modChildReach;
 
                         var newName = (condNameChange ? selectedRace.newName : null);
 
@@ -393,9 +381,9 @@ namespace SynRaceRebalancer
             IPatchedStartingAttributes.Remove(BasicStat.Stamina);
             IPatchedStartingAttributes.Remove(BasicStat.Magicka);
 
-            IPatchedStartingAttributes.Add(BasicStat.Health, newHealth);
-            IPatchedStartingAttributes.Add(BasicStat.Magicka, newMagicka);
-            IPatchedStartingAttributes.Add(BasicStat.Stamina, newStamina);
+            IPatchedStartingAttributes.Add(BasicStat.Health, (int)newHealth);
+            IPatchedStartingAttributes.Add(BasicStat.Magicka, (int)newMagicka);
+            IPatchedStartingAttributes.Add(BasicStat.Stamina, (int)newStamina);
 
             IPatchedRegenAttributes.Remove(BasicStat.Health);
             IPatchedRegenAttributes.Remove(BasicStat.Stamina);
@@ -405,14 +393,14 @@ namespace SynRaceRebalancer
             IPatchedRegenAttributes.Add(BasicStat.Magicka, newMagickaRegen);
             IPatchedRegenAttributes.Add(BasicStat.Stamina, newStaminaRegen);
 
-            patchedRace.BaseCarryWeight = newCarryWeight;
+            patchedRace.BaseCarryWeight = (int)newCarryWeight;
             patchedRace.BaseMass = newMass;
 
             patchedRace.AccelerationRate = newAcceleration;
             patchedRace.DecelerationRate = newDeceleration;
 
-            patchedRace.UnarmedDamage = newUnarmedDamage;
-            patchedRace.UnarmedReach = newUnarmedReach;
+            patchedRace.UnarmedDamage = (int)newUnarmedDamage;
+            patchedRace.UnarmedReach = (int)newUnarmedReach;
 
             //Logger.Log($"{newName}");
 
@@ -424,7 +412,21 @@ namespace SynRaceRebalancer
 
         private static void PatchSkills(Race patchedRace, SkillList.Skills skill0, sbyte skill0Boost, SkillList.Skills skill1, sbyte skill1Boost, SkillList.Skills skill2, sbyte skill2Boost, SkillList.Skills skill3, sbyte skill3Boost, SkillList.Skills skill4, sbyte skill4Boost, SkillList.Skills skill5, sbyte skill5Boost, SkillList.Skills skill6, sbyte skill6Boost)
         {
+            patchedRace.SkillBoost0.Skill = (ActorValue)skill0;
+            patchedRace.SkillBoost1.Skill = (ActorValue)skill1;
+            patchedRace.SkillBoost2.Skill = (ActorValue)skill2;
+            patchedRace.SkillBoost3.Skill = (ActorValue)skill3;
+            patchedRace.SkillBoost4.Skill = (ActorValue)skill4;
+            patchedRace.SkillBoost5.Skill = (ActorValue)skill5;
+            patchedRace.SkillBoost6.Skill = (ActorValue)skill6;
 
+            patchedRace.SkillBoost0.Boost = skill0Boost;
+            patchedRace.SkillBoost1.Boost = skill1Boost;
+            patchedRace.SkillBoost2.Boost = skill2Boost;
+            patchedRace.SkillBoost3.Boost = skill3Boost;
+            patchedRace.SkillBoost4.Boost = skill4Boost;
+            patchedRace.SkillBoost5.Boost = skill5Boost;
+            patchedRace.SkillBoost6.Boost = skill6Boost;
         }
 
     }
