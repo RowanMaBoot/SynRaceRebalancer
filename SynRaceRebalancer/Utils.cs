@@ -15,13 +15,16 @@ namespace SynRaceRebalancer.Utils
             string final = indent + inputString;
             Console.WriteLine(final);
         }
-
+        public static void LogHR()
+        {
+            string horizontal_rule = "##########################################################################";
+            Console.WriteLine(horizontal_rule);
+        }
         public static void LogError(Exception e)
         {
             Console.WriteLine(e);
             throw e;
         }
-
     }
     public class SkillList
     {

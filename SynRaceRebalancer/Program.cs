@@ -262,10 +262,13 @@ namespace SynRaceRebalancer
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
+            Logger.LogHR();
             List<IRaceGetter> RacesToPatch = new List<IRaceGetter>();
             foreach (IRaceGetter race in state.LoadOrder.PriorityOrder.WinningOverrides<IRaceGetter>())
             {
-                RacesToPatch.Add(race);
+                //TODO: Determine if any races need to be skipped or ignored. DefaultRace for example
+                //if (race.EditorID != "DefaultRace")
+                    RacesToPatch.Add(race);
             }
 
             Logger.Log($"{RacesToPatch.Count} races to patch");
@@ -363,14 +366,14 @@ namespace SynRaceRebalancer
                             PatchSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
 
                         //Remove the caught race from the list of races to be patched - we won't want to patch it further.
-                        Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}. Left: {RacesToPatch.Count - 1}");
+                        Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}");
                         RacesToPatch.RemoveAll(raceToPatch => raceToPatch.EditorID == patchedRace.EditorID);
 
                         break;
                     }
                 }
             }
-
+            Logger.LogHR();
             Logger.Log($"{RacesToPatch.Count} races to patch");
             foreach (IRaceGetter raceToPatch in RacesToPatch.ToList())
             {
@@ -381,7 +384,8 @@ namespace SynRaceRebalancer
 
                 if (newHealth != baseHealth)
                 {
-                    Logger.Log($"{raceToPatch.EditorID} health being adjusted to: {newHealth}");
+                    Logger.Log($"{raceToPatch.EditorID} health adjusted. New: {newHealth} | Old: {baseHealth}");
+                    Logger.Log($"New: {newHealth} | Old: {baseHealth}");
 
                     Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
                     var IPatchedStartingAttributes = patchedRace.Starting;
@@ -393,6 +397,7 @@ namespace SynRaceRebalancer
                 }
             }
 
+            Logger.LogHR();
             Logger.Log($"{RacesToPatch.Count} races unpatched (old values matched new values for all records)");
             string LeftOvers = "Races Untouched: ";
             foreach (IRaceGetter raceToPatch in RacesToPatch)
