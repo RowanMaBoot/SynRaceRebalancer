@@ -405,13 +405,13 @@ namespace SynRaceRebalancer
 
         private static void PatchAttributes(IDictionary<BasicStat, float> IPatchedStartingAttributes, IDictionary<BasicStat, float> IPatchedRegenAttributes, Race patchedRace, string? newName, float newHealth, float newMagicka, float newStamina, float newCarryWeight, float newMass, float newAcceleration, float newDeceleration, float newHealthRegen, float newMagickaRegen, float newStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
         {
-            if (SettingsGlobal.EnableModule)
+            /*if (SettingsGlobal.EnableModule)
                 newHealth = (int)((newHealth * SettingsGlobal.GlobalHPMultiplier) + SettingsGlobal.GlobalHPShift);
 
             if (!SettingsGlobal.EnableModule && newHealth <= 1)
                 newHealth = 1;
             else if (newHealth <= SettingsGlobal.MinimumHPAnchor)
-                newHealth = SettingsGlobal.MinimumHPAnchor;
+                newHealth = SettingsGlobal.MinimumHPAnchor;*/
 
             IPatchedStartingAttributes.Remove(BasicStat.Health);
             IPatchedStartingAttributes.Remove(BasicStat.Stamina);

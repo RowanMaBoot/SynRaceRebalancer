@@ -10,6 +10,7 @@ namespace SynRaceRebalancer.Settings
     public class SettingsGlobal
     {
         [SynthesisOrder]
+        [SynthesisSettingName("Enable Module - Doesn't Impact Playable Races")]
         public bool EnableModule = true;
 
         [SynthesisOrder]
