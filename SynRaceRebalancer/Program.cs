@@ -440,10 +440,10 @@ namespace SynRaceRebalancer
 
                         var newName = (condNameChange ? selectedRace.newName : null);
 
-                        PatchAttributes(IPatchedStartingAttributes, IPatchedRegenAttributes, patchedRace, newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
+                        PatchRaceAttributes(IPatchedStartingAttributes, IPatchedRegenAttributes, patchedRace, newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
 
                         if (condSkillChange)
-                            PatchSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
+                            PatchRaceSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
 
                         //Remove the caught race from the list of races to be patched - we won't want to patch it further.
                         Logger.Log($"Patching {patchedRace.EditorID} with stats from {selectedRace.editorID}");
@@ -453,8 +453,10 @@ namespace SynRaceRebalancer
                     }
                 }
             }
+            
             Logger.LogHR();
             Logger.Log($"{RacesToPatch.Count} races to patch");
+            
             foreach (IRaceGetter raceToPatch in RacesToPatch.ToList())
             {
                 float baseHealth = raceToPatch.Starting[BasicStat.Health];
@@ -479,7 +481,9 @@ namespace SynRaceRebalancer
 
             Logger.LogHR();
             Logger.Log($"{RacesToPatch.Count} races unpatched (old values matched new values for all records)");
+            
             string LeftOvers = "Races Untouched: ";
+           
             foreach (IRaceGetter raceToPatch in RacesToPatch)
             {
                 LeftOvers = (string)(LeftOvers + raceToPatch.EditorID + " ");
@@ -488,7 +492,7 @@ namespace SynRaceRebalancer
             Logger.Log($"{LeftOvers}");
         }
 
-        private static void PatchAttributes(IDictionary<BasicStat, float> IPatchedStartingAttributes, IDictionary<BasicStat, float> IPatchedRegenAttributes, Race patchedRace, string? newName, float newHealth, float newMagicka, float newStamina, float newCarryWeight, float newMass, float newAcceleration, float newDeceleration, float newHealthRegen, float newMagickaRegen, float newStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
+        private static void PatchRaceAttributes(IDictionary<BasicStat, float> IPatchedStartingAttributes, IDictionary<BasicStat, float> IPatchedRegenAttributes, Race patchedRace, string? newName, float newHealth, float newMagicka, float newStamina, float newCarryWeight, float newMass, float newAcceleration, float newDeceleration, float newHealthRegen, float newMagickaRegen, float newStaminaRegen, float newUnarmedDamage, float newUnarmedReach)
         {
             /*if (SettingsGlobal.EnableModule)
                 newHealth = (int)((newHealth * SettingsGlobal.GlobalHPMultiplier) + SettingsGlobal.GlobalHPShift);
@@ -531,7 +535,7 @@ namespace SynRaceRebalancer
             Logger.Log($"Patched {patchedRace.EditorID}");
         }
 
-        private static void PatchSkills(Race patchedRace, SkillList.Skills skill0, sbyte skill0Boost, SkillList.Skills skill1, sbyte skill1Boost, SkillList.Skills skill2, sbyte skill2Boost, SkillList.Skills skill3, sbyte skill3Boost, SkillList.Skills skill4, sbyte skill4Boost, SkillList.Skills skill5, sbyte skill5Boost, SkillList.Skills skill6, sbyte skill6Boost)
+        private static void PatchRaceSkills(Race patchedRace, SkillList.Skills skill0, sbyte skill0Boost, SkillList.Skills skill1, sbyte skill1Boost, SkillList.Skills skill2, sbyte skill2Boost, SkillList.Skills skill3, sbyte skill3Boost, SkillList.Skills skill4, sbyte skill4Boost, SkillList.Skills skill5, sbyte skill5Boost, SkillList.Skills skill6, sbyte skill6Boost)
         {
             patchedRace.SkillBoost0.Skill = (ActorValue)skill0;
             patchedRace.SkillBoost1.Skill = (ActorValue)skill1;

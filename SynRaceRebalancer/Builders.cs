@@ -8,9 +8,6 @@ using SynRaceRebalancer.Utils;
 
 namespace SynRaceRebalancer.Builders
 {
-
-    
-
     public struct RaceObject
     {
         public string editorID;
