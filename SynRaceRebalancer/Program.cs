@@ -14,6 +14,9 @@ namespace SynRaceRebalancer
 {
     public class Program
     {
+        private static LoadOrder<IModListing<ISkyrimModGetter>> _stateLoadOrder = null!;
+        private static ISkyrimMod _statePatchMod = null!;
+
         static Lazy<SettingsGlobal> _SettingsGlobal = null!;
         static SettingsGlobal SettingsGlobal => _SettingsGlobal.Value;
 
@@ -260,15 +263,92 @@ namespace SynRaceRebalancer
             });
         }
 
-        public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public class GameSettingsToModify
         {
-            Logger.LogHR();
+            public static List<GMSTObject> GMSTGeneralList = new List<GMSTObject>(new GMSTObject[] {
+                new GMSTObject("iAVDSkillStart", SettingsGlobal.GameSetting.iAVDSkillStart),
+                new GMSTObject("iAVDhmsLevelUp", SettingsGlobal.GameSetting.iAVDhmsLevelUp),
+                new GMSTObject("iAVDSkillsLevelUp", SettingsGlobal.GameSetting.iAVDSkillsLevelUp),
+                new GMSTObject("fNPChealthLevelBonus", SettingsGlobal.GameSetting.fNPCHealthLevelBonus),
+            });
+            public static List<GMSTObject> GMSTRegenList = new List<GMSTObject>(new GMSTObject[] {
+                new GMSTObject("fCombatHealthRegenRateMult", SettingsGlobal.GameSetting.fCombatHealthRegenRateMult),
+                new GMSTObject("fCombatMagickaRegenRateMult", SettingsGlobal.GameSetting.fCombatMagickaRegenRateMult),
+                new GMSTObject("fCombatStaminaRegenRateMult", SettingsGlobal.GameSetting.fCombatStaminaRegenRateMult),
+            });
+            public static List<GMSTObject> GMSTDiffList = new List<GMSTObject>(new GMSTObject[] {
+                new GMSTObject("fDiffMultHPToPCVE", SettingsGlobal.GameSetting.fDiffMultHPToPCVE),
+                new GMSTObject("fDiffMultHPByPCVE", SettingsGlobal.GameSetting.fDiffMultHPByPCVE),
+                new GMSTObject("fDiffMultHPToPCE", SettingsGlobal.GameSetting.fDiffMultHPToPCE),
+                new GMSTObject("fDiffMultHPByPCE", SettingsGlobal.GameSetting.fDiffMultHPByPCE),
+                new GMSTObject("fDiffMultHPToPCN", SettingsGlobal.GameSetting.fDiffMultHPToPCN),
+                new GMSTObject("fDiffMultHPByPCN", SettingsGlobal.GameSetting.fDiffMultHPByPCN),
+                new GMSTObject("fDiffMultHPToPCH", SettingsGlobal.GameSetting.fDiffMultHPToPCH),
+                new GMSTObject("fDiffMultHPByPCH", SettingsGlobal.GameSetting.fDiffMultHPByPCH),
+                new GMSTObject("fDiffMultHPToPCVH", SettingsGlobal.GameSetting.fDiffMultHPToPCVH),
+                new GMSTObject("fDiffMultHPByPCVH", SettingsGlobal.GameSetting.fDiffMultHPByPCVH),
+                new GMSTObject("fDiffMultHPToPCL", SettingsGlobal.GameSetting.fDiffMultHPToPCL),
+                new GMSTObject("fDiffMultHPByPCL", SettingsGlobal.GameSetting.fDiffMultHPByPCL),
+            });
+            public static List<GMSTObject> GMSTHealthList = new List<GMSTObject>(new GMSTObject[] {
+                new GMSTObject("fHealthDataValue1", SettingsGlobal.GameSetting.fDiffMultHPByPCVE),
+                new GMSTObject("fHealthDataValue2", SettingsGlobal.GameSetting.fDiffMultHPToPCE),
+                new GMSTObject("fHealthDataValue3", SettingsGlobal.GameSetting.fDiffMultHPByPCE),
+                new GMSTObject("fHealthDataValue4", SettingsGlobal.GameSetting.fDiffMultHPToPCN),
+                new GMSTObject("fHealthDataValue5", SettingsGlobal.GameSetting.fDiffMultHPByPCN),
+                new GMSTObject("fHealthDataValue6", SettingsGlobal.GameSetting.fDiffMultHPToPCH),
+            });
+        }
+
+        private static void PatchGamesettings()
+        {
+            if (SettingsGlobal.GameSetting.GMSTChanges)
+            {
+                List<GMSTObject> SettingsToChangeList = new List<GMSTObject>();
+
+                if (SettingsGlobal.GameSetting.GMSTGeneralChanges) SettingsToChangeList.AddRange(GameSettingsToModify.GMSTGeneralList);
+                if (SettingsGlobal.GameSetting.GMSTRegenChanges) SettingsToChangeList.AddRange(GameSettingsToModify.GMSTRegenList);
+                if (SettingsGlobal.GameSetting.GMSTDiffChanges) SettingsToChangeList.AddRange(GameSettingsToModify.GMSTDiffList);
+                if (SettingsGlobal.GameSetting.GMSTfHealthDataValue) SettingsToChangeList.AddRange(GameSettingsToModify.GMSTHealthList);
+
+                foreach (IGameSettingGetter GMST in _stateLoadOrder.PriorityOrder.WinningOverrides<IGameSettingGetter>())
+                {
+                    foreach (var NewGMST in SettingsToChangeList)
+                    {
+                        if (GMST.EditorID?.Contains(NewGMST.editorID) == true)
+                        {
+                            var PatchedSetting = _statePatchMod.GameSettings.GetOrAddAsOverride(GMST);
+
+                            if (NewGMST.Data is int && (int?)NewGMST.Data != ((GameSettingInt)PatchedSetting).Data)
+                            {
+                                Logger.Log($"{GMST.EditorID} being set to {NewGMST.Data}");
+                                ((GameSettingInt)PatchedSetting).Data = (int?)NewGMST.Data;
+                            }
+                            else if (NewGMST.Data is float && (float?)NewGMST.Data != ((GameSettingFloat)PatchedSetting).Data)
+                            {
+                                Logger.Log($"{GMST.EditorID} being set to {NewGMST.Data}");
+                                ((GameSettingFloat)PatchedSetting).Data = (float?)NewGMST.Data;
+                            }
+                            else
+                            {
+                                Logger.Log($"{GMST.EditorID} is either set to vanilla values, or an undefined type.");
+                            }
+                        }
+                    }
+                }
+                Logger.Log("Patched Gamesettings");
+                Logger.LogHR();
+            }
+        }
+
+        private static void PatchRaces()
+        {
             List<IRaceGetter> RacesToPatch = new List<IRaceGetter>();
-            foreach (IRaceGetter race in state.LoadOrder.PriorityOrder.WinningOverrides<IRaceGetter>())
+            foreach (IRaceGetter race in _stateLoadOrder.PriorityOrder.WinningOverrides<IRaceGetter>())
             {
                 //TODO: Determine if any races need to be skipped or ignored. DefaultRace for example
                 //if (race.EditorID != "DefaultRace")
-                    RacesToPatch.Add(race);
+                RacesToPatch.Add(race);
             }
 
             Logger.Log($"{RacesToPatch.Count} races to patch");
@@ -313,15 +393,15 @@ namespace SynRaceRebalancer
 
                     var CondAliases = raceToPatch.EditorID != null && !aliasesList.All(x => string.IsNullOrWhiteSpace(x)) && aliasesList.Any(x => raceToPatch.EditorID.Contains(x));
 
-                    
+
                     if (raceToPatch.EditorID?.Contains(selectedRace.editorID) == true || CondAliases)
                     {
-                        Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
+                        Race patchedRace = _statePatchMod.Races.GetOrAddAsOverride(raceToPatch);
                         var IPatchedStartingAttributes = patchedRace.Starting;
                         var IPatchedRegenAttributes = patchedRace.Regen;
 
                         var SettingsMod = SettingsPlayable.Global;
-                        
+
                         var condVamp = (raceToPatch.Keywords?.Contains(Skyrim.Keyword.Vampire) == true && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
                         var condChild = (raceToPatch.Flags.HasFlag((Race.Flag)4) && SettingsPlayable.General.PlayableRaceVampireOrChildMod);
 
@@ -361,7 +441,7 @@ namespace SynRaceRebalancer
                         var newName = (condNameChange ? selectedRace.newName : null);
 
                         PatchAttributes(IPatchedStartingAttributes, IPatchedRegenAttributes, patchedRace, newName, targetHealth, targetMagicka, targetStamina, targetCarryWeight, targetMass, targetAcceleration, targetDeceleration, targetHealthRegen, targetMagickaRegen, targetStaminaRegen, newUnarmedDamage, newUnarmedReach);
-                        
+
                         if (condSkillChange)
                             PatchSkills(patchedRace, selectedRace.Skill0, selectedRace.Skill0Boost, selectedRace.Skill1, selectedRace.Skill1Boost, selectedRace.Skill2, selectedRace.Skill2Boost, selectedRace.Skill3, selectedRace.Skill3Boost, selectedRace.Skill4, selectedRace.Skill4Boost, selectedRace.Skill5, selectedRace.Skill5Boost, selectedRace.Skill6, selectedRace.Skill6Boost);
 
@@ -387,7 +467,7 @@ namespace SynRaceRebalancer
                     Logger.Log($"{raceToPatch.EditorID} health adjusted. New: {newHealth} | Old: {baseHealth}");
                     Logger.Log($"New: {newHealth} | Old: {baseHealth}");
 
-                    Race patchedRace = state.PatchMod.Races.GetOrAddAsOverride(raceToPatch);
+                    Race patchedRace = _statePatchMod.Races.GetOrAddAsOverride(raceToPatch);
                     var IPatchedStartingAttributes = patchedRace.Starting;
 
                     IPatchedStartingAttributes.Remove(BasicStat.Health);
@@ -470,5 +550,13 @@ namespace SynRaceRebalancer
             patchedRace.SkillBoost6.Boost = skill6Boost;
         }
 
+        public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            _stateLoadOrder = state.LoadOrder;
+            _statePatchMod = state.PatchMod;
+
+            PatchGamesettings();
+            PatchRaces();
+        }
     }
 }

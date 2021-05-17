@@ -127,4 +127,15 @@ namespace SynRaceRebalancer.Builders
             this.Skill6Boost = Skill6Boost;
         }
     }
+    public struct GMSTObject
+    {
+        public string editorID;
+        public IConvertible Data;
+
+        public GMSTObject(string editorID, IConvertible Data)
+        {
+            this.editorID = editorID;
+            this.Data = Data;
+        }
+    }
 }
