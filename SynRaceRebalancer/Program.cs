@@ -9,12 +9,13 @@ using SynRaceRebalancer.Settings;
 using SynRaceRebalancer.Utils;
 using SynRaceRebalancer.Builders;
 using Mutagen.Bethesda.FormKeys.SkyrimSE;
+using Mutagen.Bethesda.Plugins.Order;
 
 namespace SynRaceRebalancer
 {
     public class Program
     {
-        private static LoadOrder<IModListing<ISkyrimModGetter>> _stateLoadOrder = null!;
+        private static ILoadOrder<IModListing<ISkyrimModGetter>> _stateLoadOrder = null!;
         private static ISkyrimMod _statePatchMod = null!;
 
         static Lazy<SettingsGlobal> _SettingsGlobal = null!;
